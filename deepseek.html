@@ -1,62 +1,39 @@
-﻿<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Chat con DeepSeek (vía OpenRouter)</title>
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-    textarea{ width: 100%; height: 150px; margin-top: 10px; }
-    input, button { width: 100%; margin-top: 10px; }
-    #response { white-space: pre-wrap; margin-top: 20px; background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px solid #ddd; }
-  </style>
-</head>
-<body>
- <h1>🤖 Chat con DeepSeek</h1>
-  <!-- <label>🔑 API Key de OpenRouter:</label> -->
-  <!-- <input type="password" id="apiKey" placeholder="Escribe tu clave de OpenRouter" /> -->
+import requests
+import json
 
-  <label>✍️ Tu mensaje:</label>
-  <textarea id="userMessage" rows="4" placeholder="Ej: Escribe un prompt para un mockup con fondo blanco..."></textarea>
+# 🔑 Tu clave API de OpenRouter
+api_key = "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"
 
-  <button onclick="consultarDeepSeek()">Enviar a DeepSeek</button>
+# ✍️ Mensaje del usuario (prompt)
+user_input = input("Escribe tu mensaje para DeepSeek:\n> ")
 
-  <div id="response"></div>
+# Configuración de la solicitud
+headers = {
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json"
+}
 
-  <script>
-    async function consultarDeepSeek() {
-      const apiKey = "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"//document.getElementById("apiKey").value.trim();
-      const userInput = document.getElementById("userMessage").value.trim();
-      const responseDiv = document.getElementById("response");
+payload = {
+    "model": "deepseek/deepseek-r1-0528-qwen3-8b:free",
+    "messages": [
+        {"role": "user", "content": user_input}
+    ]
+}
 
-      responseDiv.textContent = "Esperando respuesta...";
+# Enviar solicitud a OpenRouter
+response = requests.post(
+    "https://openrouter.ai/api/v1/chat/completions",
+    headers=headers,
+    data=json.dumps(payload)
+)
 
-      if (!apiKey || !userInput) {
-        responseDiv.textContent = "🔴 Debes ingresar tu API Key y un mensaje.";
-        return;
-      }
-
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": "Bearer " + apiKey,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-r1-0528-qwen3-8b:free",
-          messages: [
-            { role: "user", content: userInput }
-          ]
-        })
-      });
-
-      const data = await res.json();
-
-      if (data.choices && data.choices.length > 0) {
-        responseDiv.textContent = "🧠 Respuesta:\n\n" + data.choices[0].message.content;
-      } else {
-        responseDiv.textContent = "⚠️ No se recibió respuesta válida.";
-      }
-    }
-  </script>
-</body>
-</html>
+# Procesar la respuesta
+if response.status_code == 200:
+    data = response.json()
+    if "choices" in data and len(data["choices"]) > 0:
+        print("\n🧠 Respuesta de DeepSeek:\n")
+        print(data["choices"][0]["message"]["content"])
+    else:
+        print("⚠️ No se recibió una respuesta válida.")
+else:
+    print(f"🔴 Error {response.status_code}: {response.text}")
